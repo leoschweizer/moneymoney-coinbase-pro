@@ -48,7 +48,6 @@ function InitializeSession (protocol, bankCode, username, username2, password, u
 	apiKey = username
 	apiSecret = password
 	apiPassphrase = username2
-	print(apiKey, apiSecret)
 end
 
 function ListAccounts (knownAccounts)
