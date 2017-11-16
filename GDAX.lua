@@ -65,7 +65,6 @@ function RefreshAccount (account, since)
 	local balances = queryGdaxApi("accounts")
 	for key, value in pairs(balances) do
 		local balenceCurrency = value["currency"]
-		local exchangeRates = queryExchangeRates(balenceCurrency)
 		local securityCurrency = nil
 		local price = nil
 		local amount = nil
@@ -73,6 +72,7 @@ function RefreshAccount (account, since)
 			securityCurrency = balenceCurrency
 			amount = value["balance"]
 		else
+			local exchangeRates = queryExchangeRates(balenceCurrency)
 			price = exchangeRates["rates"][nativeCurrency]
 		end
 		s[#s+1] = {
