@@ -38,7 +38,6 @@ local apiPassphrase
 
 local nativeCurrency = "EUR"
 local market = "GDAX"
-local accountNumber = "Main"
 
 function SupportsBank (protocol, bankCode)
 	return protocol == ProtocolWebBanking and bankCode == "GDAX"
@@ -53,7 +52,7 @@ end
 function ListAccounts (knownAccounts)
 	local account = {
 		name = market,
-		accountNumber = accountNumber,
+		accountNumber = "Main",
 		currency = nativeCurrency,
 		portfolio = true,
 		type = "AccountTypePortfolio"
@@ -65,13 +64,24 @@ function RefreshAccount (account, since)
 	local s = {}
 	local balances = queryGdaxApi("accounts")
 	for key, value in pairs(balances) do
-		exchangeRates = queryExchangeRates(value["currency"])
+		local balenceCurrency = value["currency"]
+		local exchangeRates = queryExchangeRates(balenceCurrency)
+		local securityCurrency = nil
+		local price = nil
+		local amount = nil
+		if balenceCurrency == nativeCurrency then 
+			securityCurrency = balenceCurrency
+			amount = value["balance"]
+		else
+			price = exchangeRates["rates"][nativeCurrency]
+		end
 		s[#s+1] = {
 			name = value["currency"],
 			market = market,
-			currency = nil,
+			currency = securityCurrency,
 			quantity = value["balance"],
-			price = exchangeRates["rates"][nativeCurrency]
+			price = price,
+			amount = amount
 		}
 	end
 	return {securities = s}
