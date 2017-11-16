@@ -2,7 +2,8 @@
 -- Fetches balances via GDAX API and returns them as securities
 --
 -- Username: GDAX API Key
--- Password: GDAX API Secret
+-- Username2: GDAX API Secret
+-- Password: GDAX API Passphrase
 --
 -- Copyright (c) 2017 Leo Schweizer
 --
@@ -26,8 +27,7 @@
 
 WebBanking {
 	version = 1.0,
---	url = "https://api.gdax.com",
-	url = "https://api-public.sandbox.gdax.com",
+	url = "https://api.gdax.com",
 	description = "Fetch balances via GDAX API and list them as securities",
 	services = { "GDAX" }
 }
@@ -46,8 +46,8 @@ end
 
 function InitializeSession (protocol, bankCode, username, username2, password, username3)
 	apiKey = username
-	apiSecret = password
-	apiPassphrase = username2
+	apiSecret = username2
+	apiPassphrase = password
 end
 
 function ListAccounts (knownAccounts)
@@ -105,7 +105,7 @@ function queryGdaxApi(endpoint)
 	headers["CB-ACCESS-KEY"] = apiKey
 	headers["CB-ACCESS-TIMESTAMP"] = timestamp
 	headers["CB-ACCESS-SIGN"] = MM.base64(apiSign)
-	headers["CB-ACCESS-PASSPHRASE"] = ""
+	headers["CB-ACCESS-PASSPHRASE"] = apiPassphrase
 
 	local content = Connection():request("GET", url .. path, nil, nil, headers)
 	return JSON(content):dictionary()
