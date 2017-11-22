@@ -68,18 +68,20 @@ function RefreshAccount (account, since)
 		local securityCurrency = nil
 		local price = nil
 		local amount = nil
+		local quantity = nil
 		if balenceCurrency == nativeCurrency then 
 			securityCurrency = balenceCurrency
 			amount = value["balance"]
 		else
 			local exchangeRates = queryExchangeRates(balenceCurrency)
 			price = exchangeRates["rates"][nativeCurrency]
+			quantity = value["balance"]
 		end
 		s[#s+1] = {
 			name = value["currency"],
 			market = market,
 			currency = securityCurrency,
-			quantity = value["balance"],
+			quantity = quantity,
 			price = price,
 			amount = amount
 		}
