@@ -26,10 +26,10 @@
 -- SOFTWARE.
 
 WebBanking {
-	version = 1.0,
-	url = "https://api.gdax.com",
-	description = "Fetch balances via GDAX API and list them as securities",
-	services = { "GDAX" }
+        version = 1.0,
+        url = "https://api.gdax.com",
+        description = "Fetch balances via GDAX API and list them as securities",
+        services = { "GDAX" }
 }
 
 local apiKey
@@ -40,91 +40,93 @@ local nativeCurrency = "EUR"
 local market = "GDAX"
 
 function SupportsBank (protocol, bankCode)
-	return protocol == ProtocolWebBanking and bankCode == "GDAX"
+        return protocol == ProtocolWebBanking and bankCode == "GDAX"
 end
 
 function InitializeSession (protocol, bankCode, username, username2, password, username3)
-	apiKey = username
-	apiSecret = username2
-	apiPassphrase = password
+        apiKey = username
+        apiSecret = username2
+        apiPassphrase = password
 end
 
 function ListAccounts (knownAccounts)
-	local account = {
-		name = market,
-		accountNumber = "Main",
-		currency = nativeCurrency,
-		portfolio = true,
-		type = "AccountTypePortfolio"
-	}
-	return {account}
+        local account = {
+                name = market,
+                accountNumber = "Main",
+                currency = nativeCurrency,
+                portfolio = true,
+                type = "AccountTypePortfolio"
+        }
+        return {account}
 end
 
 function RefreshAccount (account, since)
-	local s = {}
-	local balances = queryGdaxApi("accounts")
-	for key, value in pairs(balances) do
-		local balenceCurrency = value["currency"]
-		local securityCurrency = nil
-		local price = nil
-		local amount = nil
-		local quantity = nil
-		if balenceCurrency == nativeCurrency then 
-			securityCurrency = balenceCurrency
-			amount = value["balance"]
-		else
-			local exchangeRates = queryExchangeRates(balenceCurrency)
-			price = exchangeRates["rates"][nativeCurrency]
-			quantity = value["balance"]
-		end
-		s[#s+1] = {
-			name = value["currency"],
-			market = market,
-			currency = securityCurrency,
-			quantity = quantity,
-			price = price,
-			amount = amount
-		}
-	end
-	return {securities = s}
+        local s = {}
+        local balances = queryGdaxApi("accounts")
+        for key, value in pairs(balances) do
+                local balenceCurrency = value["currency"]
+                local securityCurrency = nil
+                local price = nil
+                local amount = nil
+                local quantity = nil
+                if balenceCurrency == nativeCurrency then
+                        securityCurrency = balenceCurrency
+                        amount = value["balance"]
+                else
+                        local exchangeRates = queryExchangeRates(balenceCurrency)
+                        price = exchangeRates["rates"][nativeCurrency]
+                        quantity = value["balance"]
+                end
+                s[#s+1] = {
+                        name = value["currency"],
+                        market = market,
+                        currency = securityCurrency,
+                        quantity = quantity,
+                        price = price,
+                        amount = amount
+                }
+        end
+        return {securities = s}
 end
 
 function EndSession ()
 end
 
 function base64decode(data)
-	local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-	data = string.gsub(data, '[^'..b..'=]', '')
-	return (data:gsub('.', function(x)
-		if (x == '=') then return '' end
-		local r,f='',(b:find(x)-1)
-		for i=6,1,-1 do r=r..(f%2^i-f%2^(i-1)>0 and '1' or '0') end
-		return r;
-	end):gsub('%d%d%d?%d?%d?%d?%d?%d?', function(x)
-		if (#x ~= 8) then return '' end
-		local c=0
-		for i=1,8 do c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0) end
-		return string.char(c)
-	end))
+        local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+        data = string.gsub(data, '[^'..b..'=]', '')
+        return (data:gsub('.', function(x)
+                if (x == '=') then return '' end
+                local r,f='',(b:find(x)-1)
+                for i=6,1,-1 do r=r..(f%2^i-f%2^(i-1)>0 and '1' or '0') end
+                return r;
+        end):gsub('%d%d%d?%d?%d?%d?%d?%d?', function(x)
+                if (#x ~= 8) then return '' end
+                local c=0
+                for i=1,8 do c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0) end
+                return string.char(c)
+        end))
 end
 
 function queryGdaxApi(endpoint)
-	local path = string.format("/%s", endpoint)
-	local timestamp = string.format("%d", MM.time())
-	local apiSign = MM.hmac256(base64decode(apiSecret), timestamp .. "GET" .. path)
-	
-	local headers = {}
-	headers["CB-ACCESS-KEY"] = apiKey
-	headers["CB-ACCESS-TIMESTAMP"] = timestamp
-	headers["CB-ACCESS-SIGN"] = MM.base64(apiSign)
-	headers["CB-ACCESS-PASSPHRASE"] = apiPassphrase
+        local path = string.format("/%s", endpoint)
+        local timestamp = string.format("%d", MM.time())
+        local apiSign = MM.hmac256(base64decode(apiSecret), timestamp .. "GET" .. path)
 
-	local content = Connection():request("GET", url .. path, nil, nil, headers)
-	return JSON(content):dictionary()
+        local headers = {}
+        headers["CB-ACCESS-KEY"] = apiKey
+        headers["CB-ACCESS-TIMESTAMP"] = timestamp
+        headers["CB-ACCESS-SIGN"] = MM.base64(apiSign)
+        headers["CB-ACCESS-PASSPHRASE"] = apiPassphrase
+
+        local content = Connection():request("GET", url .. path, nil, nil, headers)
+        return JSON(content):dictionary()
 end
 
 function queryExchangeRates(currency)
-	local url = string.format("https://api.coinbase.com/v2/exchange-rates?currency=%s", currency)
-	local content = Connection():request("GET", url)
-	return JSON(content):dictionary()["data"]
+        local url = string.format("https://api.coinbase.com/v2/exchange-rates?currency=%s", currency)
+        local content = Connection():request("GET", url)
+        return JSON(content):dictionary()["data"]
 end
+
+-- SIGNATURE: MCwCFEVfWThobHskpjRwd8wFQa456Ht5AhQWPmuNXFEhynF7nVvKRg07Z/3b7A==
