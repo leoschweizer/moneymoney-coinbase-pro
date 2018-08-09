@@ -29,7 +29,7 @@ WebBanking {
         version = 1.0,
         url = "https://api.pro.coinbase.com",
         description = "Fetch balances via Coinbase Pro API and list them as securities",
-        services = { "Coinbase Pro" }
+        services = { "GDAX" }
 }
 
 local apiKey
@@ -40,7 +40,7 @@ local nativeCurrency = "EUR"
 local market = "Coinbase Pro"
 
 function SupportsBank (protocol, bankCode)
-        return protocol == ProtocolWebBanking and bankCode == "Coinbase Pro"
+        return protocol == ProtocolWebBanking and bankCode == "GDAX"
 end
 
 function InitializeSession (protocol, bankCode, username, username2, password, username3)
@@ -124,9 +124,9 @@ function queryCoinbaseProApi(endpoint)
 end
 
 function queryExchangeRates(currency)
-        local url = string.format("https://api.coinbase.com/v2/exchange-rates?currency=%s", currency)
+        local url = string.format("https://api.pro.coinbase.com/products/%s-%s/ticker", currency, nativeCurrency)
         local content = Connection():request("GET", url)
-        return JSON(content):dictionary()["data"]
+        return JSON(content):dictionary()["price"]
 end
 
 -- SIGNATURE: MCwCFEVfWThobHskpjRwd8wFQa456Ht5AhQWPmuNXFEhynF7nVvKRg07Z/3b7A==
