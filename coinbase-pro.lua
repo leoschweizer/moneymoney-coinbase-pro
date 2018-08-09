@@ -1,9 +1,9 @@
--- Inofficial GDAX Extension (https://www.gdax.com/) for MoneyMoney
+-- Inofficial Coinbase Pro Extension (https://pro.coinbase.com/) for MoneyMoney
 -- Fetches balances via GDAX API and returns them as securities
 --
--- Username: GDAX API Key
--- Username2: GDAX API Secret
--- Password: GDAX API Passphrase
+-- Username: Coinbase Pro API Key
+-- Username2: Coinbase Pro API Secret
+-- Password: Coinbase Pro API Passphrase
 --
 -- Copyright (c) 2017 Leo Schweizer
 --
@@ -27,9 +27,9 @@
 
 WebBanking {
         version = 1.0,
-        url = "https://api.gdax.com",
-        description = "Fetch balances via GDAX API and list them as securities",
-        services = { "GDAX" }
+        url = "https://api.pro.coinbase.com",
+        description = "Fetch balances via Coinbase Pro API and list them as securities",
+        services = { "Coinbase Pro" }
 }
 
 local apiKey
@@ -37,10 +37,10 @@ local apiSecret
 local apiPassphrase
 
 local nativeCurrency = "EUR"
-local market = "GDAX"
+local market = "Coinbase Pro"
 
 function SupportsBank (protocol, bankCode)
-        return protocol == ProtocolWebBanking and bankCode == "GDAX"
+        return protocol == ProtocolWebBanking and bankCode == "Coinbase Pro"
 end
 
 function InitializeSession (protocol, bankCode, username, username2, password, username3)
@@ -62,7 +62,7 @@ end
 
 function RefreshAccount (account, since)
         local s = {}
-        local balances = queryGdaxApi("accounts")
+        local balances = queryCoinbaseProApi("accounts")
         for key, value in pairs(balances) do
                 local balenceCurrency = value["currency"]
                 local securityCurrency = nil
@@ -108,7 +108,7 @@ function base64decode(data)
         end))
 end
 
-function queryGdaxApi(endpoint)
+function queryCoinbaseProApi(endpoint)
         local path = string.format("/%s", endpoint)
         local timestamp = string.format("%d", MM.time())
         local apiSign = MM.hmac256(base64decode(apiSecret), timestamp .. "GET" .. path)
