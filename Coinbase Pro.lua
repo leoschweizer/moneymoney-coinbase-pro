@@ -1,9 +1,9 @@
--- Inofficial GDAX Extension (https://www.gdax.com/) for MoneyMoney
--- Fetches balances via GDAX API and returns them as securities
+-- Inofficial Coinbase Pro Extension (https://pro.coinbase.com/) for MoneyMoney
+-- Fetches balances via Coinbase Pro API and returns them as securities
 --
--- Username: GDAX API Key
--- Username2: GDAX API Secret
--- Password: GDAX API Passphrase
+-- Username: Coinbase Pro API Key
+-- Username2: Coinbase Pro API Secret
+-- Password: Coinbase Pro API Passphrase
 --
 -- Copyright (c) 2017 Leo Schweizer
 --
@@ -27,9 +27,9 @@
 
 WebBanking {
         version = 1.0,
-        url = "https://api.gdax.com",
-        description = "Fetch balances via GDAX API and list them as securities",
-        services = { "GDAX" }
+        url = "https://api.pro.coinbase.com",
+        description = "Fetch balances via Coinbase Pro API and list them as securities",
+        services = { "Coinbase Pro" }
 }
 
 local apiKey
@@ -37,10 +37,10 @@ local apiSecret
 local apiPassphrase
 
 local nativeCurrency = "EUR"
-local market = "GDAX"
+local market = "Coinbase Pro"
 
 function SupportsBank (protocol, bankCode)
-        return protocol == ProtocolWebBanking and bankCode == "GDAX"
+        return protocol == ProtocolWebBanking and bankCode == "Coinbase Pro"
 end
 
 function InitializeSession (protocol, bankCode, username, username2, password, username3)
@@ -62,19 +62,19 @@ end
 
 function RefreshAccount (account, since)
         local s = {}
-        local balances = queryGdaxApi("accounts")
+        local balances = queryCoinbaseProApi("accounts")
         for key, value in pairs(balances) do
-                local balenceCurrency = value["currency"]
+                local balanceCurrency = value["currency"]
                 local securityCurrency = nil
                 local price = nil
                 local amount = nil
                 local quantity = nil
-                if balenceCurrency == nativeCurrency then
-                        securityCurrency = balenceCurrency
+                if balanceCurrency == nativeCurrency then
+                        securityCurrency = balanceCurrency
                         amount = value["balance"]
                 else
-                        local exchangeRates = queryExchangeRates(balenceCurrency)
-                        price = exchangeRates["rates"][nativeCurrency]
+                        local exchangeRates = queryExchangeRates(balanceCurrency)
+                        price = exchangeRates["price"]
                         quantity = value["balance"]
                 end
                 s[#s+1] = {
@@ -108,7 +108,7 @@ function base64decode(data)
         end))
 end
 
-function queryGdaxApi(endpoint)
+function queryCoinbaseProApi(endpoint)
         local path = string.format("/%s", endpoint)
         local timestamp = string.format("%d", MM.time())
         local apiSign = MM.hmac256(base64decode(apiSecret), timestamp .. "GET" .. path)
@@ -124,9 +124,9 @@ function queryGdaxApi(endpoint)
 end
 
 function queryExchangeRates(currency)
-        local url = string.format("https://api.coinbase.com/v2/exchange-rates?currency=%s", currency)
+        local url = string.format("https://api.pro.coinbase.com/products/%s-%s/ticker", currency, nativeCurrency)
         local content = Connection():request("GET", url)
-        return JSON(content):dictionary()["data"]
+        return JSON(content):dictionary()
 end
 
 -- SIGNATURE: MCwCFEVfWThobHskpjRwd8wFQa456Ht5AhQWPmuNXFEhynF7nVvKRg07Z/3b7A==
