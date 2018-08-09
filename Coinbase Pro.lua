@@ -74,7 +74,7 @@ function RefreshAccount (account, since)
                         amount = value["balance"]
                 else
                         local exchangeRates = queryExchangeRates(balanceCurrency)
-                        price = exchangeRates["rates"][nativeCurrency]
+                        price = exchangeRates["price"]
                         quantity = value["balance"]
                 end
                 s[#s+1] = {
@@ -126,7 +126,7 @@ end
 function queryExchangeRates(currency)
         local url = string.format("https://api.pro.coinbase.com/products/%s-%s/ticker", currency, nativeCurrency)
         local content = Connection():request("GET", url)
-        return JSON(content):dictionary()["price"]
+        return JSON(content):dictionary()
 end
 
 -- SIGNATURE: MCwCFEVfWThobHskpjRwd8wFQa456Ht5AhQWPmuNXFEhynF7nVvKRg07Z/3b7A==
