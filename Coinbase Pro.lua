@@ -29,7 +29,7 @@ WebBanking {
         version = 1.0,
         url = "https://api.pro.coinbase.com",
         description = "Fetch balances via Coinbase Pro API and list them as securities",
-        services = { "GDAX" }
+        services = { "Coinbase Pro" }
 }
 
 local apiKey
@@ -40,7 +40,7 @@ local nativeCurrency = "EUR"
 local market = "Coinbase Pro"
 
 function SupportsBank (protocol, bankCode)
-        return protocol == ProtocolWebBanking and bankCode == "GDAX"
+        return protocol == ProtocolWebBanking and bankCode == "Coinbase Pro"
 end
 
 function InitializeSession (protocol, bankCode, username, username2, password, username3)
