@@ -1,5 +1,5 @@
 -- Inofficial Coinbase Pro Extension (https://pro.coinbase.com/) for MoneyMoney
--- Fetches balances via GDAX API and returns them as securities
+-- Fetches balances via Coinbase Pro API and returns them as securities
 --
 -- Username: Coinbase Pro API Key
 -- Username2: Coinbase Pro API Secret
