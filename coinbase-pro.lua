@@ -64,16 +64,16 @@ function RefreshAccount (account, since)
         local s = {}
         local balances = queryCoinbaseProApi("accounts")
         for key, value in pairs(balances) do
-                local balenceCurrency = value["currency"]
+                local balanceCurrency = value["currency"]
                 local securityCurrency = nil
                 local price = nil
                 local amount = nil
                 local quantity = nil
-                if balenceCurrency == nativeCurrency then
-                        securityCurrency = balenceCurrency
+                if balanceCurrency == nativeCurrency then
+                        securityCurrency = balanceCurrency
                         amount = value["balance"]
                 else
-                        local exchangeRates = queryExchangeRates(balenceCurrency)
+                        local exchangeRates = queryExchangeRates(balanceCurrency)
                         price = exchangeRates["rates"][nativeCurrency]
                         quantity = value["balance"]
                 end
