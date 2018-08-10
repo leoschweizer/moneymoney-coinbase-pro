@@ -129,4 +129,4 @@ function queryExchangeRates(currency)
         return JSON(content):dictionary()
 end
 
--- SIGNATURE: MCwCFEVfWThobHskpjRwd8wFQa456Ht5AhQWPmuNXFEhynF7nVvKRg07Z/3b7A==
+-- SIGNATURE: MCwCFFrI1B5aenRMx/jAkWnJLKRDWkq3AhQusomTlSPK5Kv7yq7HFc9PCyIXjg==
