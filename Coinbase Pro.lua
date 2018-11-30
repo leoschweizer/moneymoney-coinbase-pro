@@ -132,7 +132,7 @@ end
 
 function queryExchangeRate(product_id)
         local content = Connection():request("GET", "https://api.pro.coinbase.com/products/" .. product_id .. "/ticker")
-        return JSON(content):dictionary()["price"]
+        return queryCoinbaseProApi("products/" .. product_id .. "/ticker")["price"]
 end
 
 function productsExists(product_id, products)
