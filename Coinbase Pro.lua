@@ -63,6 +63,7 @@ end
 function RefreshAccount (account, since)
         local s = {}
         local balances = queryCoinbaseProApi("accounts")
+        local products = queryCoinbaseProApi("products")
         for key, value in pairs(balances) do
                 local balanceCurrency = value["currency"]
                 local securityCurrency = nil
@@ -70,21 +71,27 @@ function RefreshAccount (account, since)
                 local amount = nil
                 local quantity = nil
                 if balanceCurrency == nativeCurrency then
-                        securityCurrency = balanceCurrency
-                        amount = value["balance"]
+                        s[#s+1] = {
+                                name = value["currency"],
+                                market = market,
+                                currency = balanceCurrency,
+                                quantity = quantity,
+                                price = price,
+                                amount = value["balance"]
+                        }
                 else
-                        local exchangeRates = queryExchangeRates(balanceCurrency)
-                        price = exchangeRates["price"]
-                        quantity = value["balance"]
+                        local product_id = balanceCurrency .. '-' .. nativeCurrency
+                        if productsExists(product_id, products) then
+                                s[#s+1] = {
+                                        name = value["currency"],
+                                        market = market,
+                                        currency = securityCurrency,
+                                        quantity = value["balance"],
+                                        price = queryExchangeRate(product_id),
+                                        amount = amount
+                                }
+                        end
                 end
-                s[#s+1] = {
-                        name = value["currency"],
-                        market = market,
-                        currency = securityCurrency,
-                        quantity = quantity,
-                        price = price,
-                        amount = amount
-                }
         end
         return {securities = s}
 end
@@ -123,10 +130,16 @@ function queryCoinbaseProApi(endpoint)
         return JSON(content):dictionary()
 end
 
-function queryExchangeRates(currency)
-        local url = string.format("https://api.pro.coinbase.com/products/%s-%s/ticker", currency, nativeCurrency)
-        local content = Connection():request("GET", url)
-        return JSON(content):dictionary()
+function queryExchangeRate(product_id)
+        local content = Connection():request("GET", "https://api.pro.coinbase.com/products/" .. product_id .. "/ticker")
+        return JSON(content):dictionary()["price"]
+end
+
+function productsExists(product_id, products)
+        for _, data in pairs(products) do
+                if data["id"] == product_id then return true end
+        end
+        return false
 end
 
 -- SIGNATURE: MCwCFFrI1B5aenRMx/jAkWnJLKRDWkq3AhQusomTlSPK5Kv7yq7HFc9PCyIXjg==
