@@ -131,7 +131,6 @@ function queryCoinbaseProApi(endpoint)
 end
 
 function queryExchangeRate(product_id)
-        local content = Connection():request("GET", "https://api.pro.coinbase.com/products/" .. product_id .. "/ticker")
         return queryCoinbaseProApi("products/" .. product_id .. "/ticker")["price"]
 end
 
