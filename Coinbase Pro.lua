@@ -63,28 +63,85 @@ end
 function RefreshAccount (account, since)
         local s = {}
         local balances = queryCoinbaseProApi("accounts")
-        for key, value in pairs(balances) do
-                local balanceCurrency = value["currency"]
-                local securityCurrency = nil
-                local price = nil
+        local products = queryCoinbaseProApi("products")
+        for _, balance_data in pairs(balances) do
+                local after = nil
+                local crypo_shorthandle = balance_data["currency"]
+                local total_quantity = tonumber(balance_data["balance"])
+                local price = 1
+                local product_id = crypo_shorthandle .. "-" .. nativeCurrency
                 local amount = nil
                 local quantity = nil
-                if balanceCurrency == nativeCurrency then
-                        securityCurrency = balanceCurrency
-                        amount = value["balance"]
-                else
-                        local exchangeRates = queryExchangeRates(balanceCurrency)
+                local currency = nil
+                local order_value = 0.0
+                local timestamp = nil
+                local pattern = "(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+).%d+Z"
+
+                local exchangeRates = queryExchangeRates(product_id, products)
+                if crypo_shorthandle ~= nativeCurrency and exchangeRates ~= false then
                         price = exchangeRates["price"]
-                        quantity = value["balance"]
+                        -- Fetch pages of 100 orders for this currency, these are based on trades on Coinbase Pro
+                        after = "start"
+                        -- Iterate through pages until cb-after header is unset
+                        while after ~= nil do
+                                if after == "start" then
+                                        orders, headers = queryCoinbaseProApi("orders?&status=done&&product_id=" .. product_id)
+                                else
+                                        orders, headers = queryCoinbaseProApi("orders?after=" .. after .. "&status=done&product_id=" .. product_id)
+                                end
+                                -- Set our next page to cb-after header
+                                after = headers["cb-after"]
+
+                                -- Iterate through this page of orders
+                                for _, order_data in pairs(orders) do
+                                        -- We only care of buy, sold coins will not be in our balance anymore
+                                        if order_data["side"] == "buy" then
+                                                year, month, day, hour, min, sec = order_data["done_at"]:match(pattern)
+                                                timestamp = os.time({day=day,month=month,year=year,hour=hour,min=min,sec=sec})
+                                                quantity = order_data["filled_size"]
+                                                -- We deduct our trade from the total amount
+                                                total_quantity = total_quantity - quantity
+                                                if order_data["price"] ~= nil then
+                                                        order_value = order_data["price"]
+                                                else
+                                                        order_value = 1 / order_data["filled_size"] * order_data["executed_value"]
+                                                end
+                                                s[#s+1] = {
+                                                        tradeTimestamp = timestamp,
+                                                        name = crypo_shorthandle,
+                                                        market = market,
+                                                        quantity = quantity,
+                                                        currency = currency,
+                                                        price = price,
+                                                        purchasePrice = order_value,
+                                                        amount = quantity * price
+                                                }
+                                        end
+                                end
+                        end
+                        -- Sums for the remaining coins not in the order book
+                        quantity = total_quantity
+                        amount = total_quantity * price
+                else
+                        -- A native currency, not a crypto coin
+                        quantity = nil
+                        price = nil
+                        currency = nativeCurrency
+                        amount = total_quantity
                 end
-                s[#s+1] = {
-                        name = value["currency"],
-                        market = market,
-                        currency = securityCurrency,
-                        quantity = quantity,
-                        price = price,
-                        amount = amount
-                }
+                -- We also have to add our remaining total amount that is not part of trades
+                -- Could come from deposits of other accounts, there will be no value attached to the transfer
+                -- Only add them if we have some left after removing trades
+                if total_quantity > 0 then
+                        s[#s+1] = {
+                                name = crypo_shorthandle,
+                                market = market,
+                                currency = currency,
+                                quantity = quantity,
+                                price = price,
+                                amount = amount
+                        }
+                end
         end
         return {securities = s}
 end
@@ -119,14 +176,26 @@ function queryCoinbaseProApi(endpoint)
         headers["CB-ACCESS-SIGN"] = MM.base64(apiSign)
         headers["CB-ACCESS-PASSPHRASE"] = apiPassphrase
 
-        local content = Connection():request("GET", url .. path, nil, nil, headers)
-        return JSON(content):dictionary()
+        content, charset, mimeType, filename, rem_headers = Connection():request("GET", url .. path, nil, nil, headers)
+        return JSON(content):dictionary(), rem_headers
 end
 
-function queryExchangeRates(currency)
-        local url = string.format("https://api.pro.coinbase.com/products/%s-%s/ticker", currency, nativeCurrency)
-        local content = Connection():request("GET", url)
-        return JSON(content):dictionary()
+function queryExchangeRates(product_id, products)
+        for _, data in pairs(products) do
+                if data["id"] == product_id then
+                        local content = Connection():request("GET", "https://api.pro.coinbase.com/products/" .. product_id .. "/ticker")
+                        return JSON(content):dictionary()
+                end
+        end
+        return false
 end
 
+function has_value (tab, val)
+        for index, value in ipairs(tab) do
+            if value == val then
+                return true
+            end
+        end
+        return false
+end
 -- SIGNATURE: MCwCFFrI1B5aenRMx/jAkWnJLKRDWkq3AhQusomTlSPK5Kv7yq7HFc9PCyIXjg==
