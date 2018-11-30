@@ -77,9 +77,8 @@ function RefreshAccount (account, since)
                 local timestamp = nil
                 local pattern = "(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+).%d+Z"
 
-                local exchangeRates = queryExchangeRates(product_id, products)
-                if crypo_shorthandle ~= nativeCurrency and exchangeRates ~= false then
-                        price = exchangeRates["price"]
+                if crypo_shorthandle ~= nativeCurrency and productsExists(product_id, products) then
+                        price = queryExchangeRate(product_id, products)
                         -- Fetch pages of 100 orders for this currency, these are based on trades on Coinbase Pro
                         after = "start"
                         -- Iterate through pages until cb-after header is unset
@@ -180,21 +179,14 @@ function queryCoinbaseProApi(endpoint)
         return JSON(content):dictionary(), rem_headers
 end
 
-function queryExchangeRates(product_id, products)
-        for _, data in pairs(products) do
-                if data["id"] == product_id then
-                        local content = Connection():request("GET", "https://api.pro.coinbase.com/products/" .. product_id .. "/ticker")
-                        return JSON(content):dictionary()
-                end
-        end
-        return false
+function queryExchangeRate(product_id, products)
+        local content = Connection():request("GET", "https://api.pro.coinbase.com/products/" .. product_id .. "/ticker")
+        return JSON(content):dictionary()["price"]
 end
 
-function has_value (tab, val)
-        for index, value in ipairs(tab) do
-            if value == val then
-                return true
-            end
+function productsExists(product_id, products)
+        for _, data in pairs(products) do
+                if data["id"] == product_id then return true end
         end
         return false
 end
