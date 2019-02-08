@@ -165,6 +165,8 @@ function base64decode(data)
 end
 
 function queryCoinbaseProApi(endpoint)
+        -- try not to run into `too many requests`, pause before each
+        sleep(1)
         local path = string.format("/%s", endpoint)
         local timestamp = string.format("%d", MM.time())
         local apiSign = MM.hmac256(base64decode(apiSecret), timestamp .. "GET" .. path)
@@ -188,5 +190,11 @@ function productsExists(product_id, products)
                 if data["id"] == product_id then return true end
         end
         return false
+end
+
+local clock = os.clock
+function sleep(n)  -- seconds
+  local t0 = clock()
+  while clock() - t0 <= n do end
 end
 -- SIGNATURE: MCwCFFrI1B5aenRMx/jAkWnJLKRDWkq3AhQusomTlSPK5Kv7yq7HFc9PCyIXjg==
