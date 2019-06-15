@@ -66,18 +66,20 @@ function RefreshAccount (account, since)
         local products = queryCoinbaseProApi("products")
         for _, balance_data in pairs(balances) do
                 local after = nil
-                local crypo_shorthandle = balance_data["currency"]
+                local crypto_shorthandle = balance_data["currency"]
                 local total_quantity = tonumber(balance_data["balance"])
                 local price = 1
-                local product_id = crypo_shorthandle .. "-" .. nativeCurrency
+                local product_id = crypto_shorthandle .. "-" .. nativeCurrency
                 local amount = nil
+                local buy_count = 0
                 local quantity = nil
                 local currency = nil
                 local order_value = 0.0
                 local timestamp = nil
+                local latest_timestamp = 0
                 local pattern = "(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+).%d+Z"
 
-                if crypo_shorthandle ~= nativeCurrency and productsExists(product_id, products) then
+                if crypto_shorthandle ~= nativeCurrency and productsExists(product_id, products) then
                         price = queryExchangeRate(product_id, products)
                         -- Fetch pages of 100 orders for this currency, these are based on trades on Coinbase Pro
                         after = "start"
@@ -95,51 +97,39 @@ function RefreshAccount (account, since)
                                 for _, order_data in pairs(orders) do
                                         -- We only care of buy, sold coins will not be in our balance anymore
                                         if order_data["side"] == "buy" then
+                                                buy_count = buy_count + 1
                                                 year, month, day, hour, min, sec = order_data["done_at"]:match(pattern)
                                                 timestamp = os.time({day=day,month=month,year=year,hour=hour,min=min,sec=sec})
-                                                quantity = order_data["filled_size"]
-                                                -- We deduct our trade from the total amount
-                                                total_quantity = total_quantity - quantity
-                                                if order_data["price"] ~= nil then
-                                                        order_value = order_data["price"]
-                                                else
-                                                        order_value = 1 / order_data["filled_size"] * order_data["executed_value"]
+                                                if timestamp > latest_timestamp then
+                                                        latest_timestamp = timestamp
                                                 end
-                                                s[#s+1] = {
-                                                        tradeTimestamp = timestamp,
-                                                        name = crypo_shorthandle,
-                                                        market = market,
-                                                        quantity = quantity,
-                                                        currency = currency,
-                                                        price = price,
-                                                        purchasePrice = order_value,
-                                                        amount = quantity * price
-                                                }
+                                                -- This trades coin value at trade time
+                                                if order_data["price"] ~= nil then
+                                                        order_value = order_value + order_data["price"]
+                                                else
+                                                        order_value = order_value + (1 / order_data["filled_size"] * order_data["executed_value"])
+                                                end
                                         end
                                 end
                         end
-                        -- Sums for the remaining coins not in the order book
-                        quantity = total_quantity
-                        amount = total_quantity * price
+                        -- Average order value over all buy orders
+                        order_value = order_value / buy_count
+                        s[#s+1] = {
+                                tradeTimestamp = timestamp,
+                                name = crypto_shorthandle,
+                                market = market,
+                                quantity = total_quantity,
+                                currency = currency,
+                                price = price,
+                                purchasePrice = order_value,
+                                amount = total_quantity * price
+                        }
                 else
                         -- A native currency, not a crypto coin
                         quantity = nil
                         price = nil
                         currency = nativeCurrency
                         amount = total_quantity
-                end
-                -- We also have to add our remaining total amount that is not part of trades
-                -- Could come from deposits of other accounts, there will be no value attached to the transfer
-                -- Only add them if we have some left after removing trades
-                if total_quantity > 0 then
-                        s[#s+1] = {
-                                name = crypo_shorthandle,
-                                market = market,
-                                currency = currency,
-                                quantity = quantity,
-                                price = price,
-                                amount = amount
-                        }
                 end
         end
         return {securities = s}
@@ -197,4 +187,4 @@ function sleep(n)  -- seconds
   local t0 = clock()
   while clock() - t0 <= n do end
 end
--- SIGNATURE: MC0CFEG8subcDGgx/zTD7J/1tZqFZzwHAhUAml+4P1Ykr5zy+8ZerTz6I4AKsqQ=
+-- SIGNATURE: MCwCFFrI1B5aenRMx/jAkWnJLKRDWkq3AhQusomTlSPK5Kv7yq7HFc9PCyIXjg==
