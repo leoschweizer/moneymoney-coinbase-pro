@@ -71,7 +71,8 @@ function RefreshAccount (account, since)
                 local price = 1
                 local product_id = crypto_shorthandle .. "-" .. nativeCurrency
                 local amount = nil
-                local buy_count = 0
+                local bought_quantity = 0
+                local transferred_quantity = 0
                 local quantity = nil
                 local currency = nil
                 local order_value = 0.0
@@ -86,7 +87,7 @@ function RefreshAccount (account, since)
                         -- Iterate through pages until cb-after header is unset
                         while after ~= nil do
                                 if after == "start" then
-                                        orders, headers = queryCoinbaseProApi("orders?&status=done&&product_id=" .. product_id)
+                                        orders, headers = queryCoinbaseProApi("orders?&status=done&product_id=" .. product_id)
                                 else
                                         orders, headers = queryCoinbaseProApi("orders?after=" .. after .. "&status=done&product_id=" .. product_id)
                                 end
@@ -97,7 +98,7 @@ function RefreshAccount (account, since)
                                 for _, order_data in pairs(orders) do
                                         -- We only care of buy, sold coins will not be in our balance anymore
                                         if order_data["side"] == "buy" then
-                                                buy_count = buy_count + 1
+                                                bought_quantity = bought_quantity + order_data["filled_size"]
                                                 year, month, day, hour, min, sec = order_data["done_at"]:match(pattern)
                                                 timestamp = os.time({day=day,month=month,year=year,hour=hour,min=min,sec=sec})
                                                 if timestamp > latest_timestamp then
@@ -105,15 +106,19 @@ function RefreshAccount (account, since)
                                                 end
                                                 -- This trades coin value at trade time
                                                 if order_data["price"] ~= nil then
-                                                        order_value = order_value + order_data["price"]
+                                                        order_value = order_value + (order_data["price"] * order_data["filled_size"])
                                                 else
-                                                        order_value = order_value + (1 / order_data["filled_size"] * order_data["executed_value"])
+                                                        order_value = order_value + (1 / order_data["filled_size"] * order_data["executed_value"] * order_data["filled_size"])
                                                 end
                                         end
                                 end
                         end
-                        -- Average order value over all buy orders
-                        order_value = order_value / buy_count
+                        -- Add unknown quantities of coins as current purchase price
+                        transferred_quantity = total_quantity - bought_quantity
+                        order_value = order_value + (price * transferred_quantity)
+
+                        -- Weighted average order price of all orders
+                        order_value = order_value / total_quantity
                         s[#s+1] = {
                                 tradeTimestamp = timestamp,
                                 name = crypto_shorthandle,
