@@ -64,6 +64,23 @@ function RefreshAccount (account, since)
         local s = {}
         local balances = queryCoinbaseProApi("accounts")
         local products = queryCoinbaseProApi("products")
+        local orders = {}
+
+        -- Fetch pages of 100 orders, iterate through them page by page until cb-after header is unset
+        after = "start"
+        while after ~= nil do
+                if after == "start" then
+                        orders_data, headers = queryCoinbaseProApi("orders?&status=done")
+                else
+                        orders_data, headers = queryCoinbaseProApi("orders?after=" .. after .. "&status=done")
+                end
+                -- Set our next page to cb-after header
+                after = headers["cb-after"]
+                -- Merge new results
+                orders = merge(orders, orders_data)
+        end
+
+        -- Match orders to our balances
         for _, balance_data in pairs(balances) do
                 local after = nil
                 local crypto_shorthandle = balance_data["currency"]
@@ -82,34 +99,22 @@ function RefreshAccount (account, since)
 
                 if crypto_shorthandle ~= nativeCurrency and productsExists(product_id, products) then
                         price = queryExchangeRate(product_id, products)
-                        -- Fetch pages of 100 orders for this currency, these are based on trades on Coinbase Pro
-                        after = "start"
-                        -- Iterate through pages until cb-after header is unset
-                        while after ~= nil do
-                                if after == "start" then
-                                        orders, headers = queryCoinbaseProApi("orders?&status=done&product_id=" .. product_id)
-                                else
-                                        orders, headers = queryCoinbaseProApi("orders?after=" .. after .. "&status=done&product_id=" .. product_id)
-                                end
-                                -- Set our next page to cb-after header
-                                after = headers["cb-after"]
-
-                                -- Iterate through this page of orders
-                                for _, order_data in pairs(orders) do
-                                        -- We only care of buy, sold coins will not be in our balance anymore
-                                        if order_data["side"] == "buy" then
-                                                bought_quantity = bought_quantity + order_data["filled_size"]
-                                                year, month, day, hour, min, sec = order_data["done_at"]:match(pattern)
-                                                timestamp = os.time({day=day,month=month,year=year,hour=hour,min=min,sec=sec})
-                                                if timestamp > latest_timestamp then
-                                                        latest_timestamp = timestamp
-                                                end
-                                                -- This trades coin value at trade time
-                                                if order_data["price"] ~= nil then
-                                                        order_value = order_value + (order_data["price"] * order_data["filled_size"])
-                                                else
-                                                        order_value = order_value + (1 / order_data["filled_size"] * order_data["executed_value"] * order_data["filled_size"])
-                                                end
+                        -- Iterate through our orders
+                        for _, order_data in pairs(orders) do
+                                 -- We only care of buy orders for this coin, sold coins will not be in our balance anymore
+                                if order_data["side"] == "buy" and order_data["product_id"] == product_id then
+                                        bought_quantity = bought_quantity + order_data["filled_size"]
+                                        -- We have to generate a proper timestamp for MoneyMoney
+                                        year, month, day, hour, min, sec = order_data["done_at"]:match(pattern)
+                                        timestamp = os.time({day=day,month=month,year=year,hour=hour,min=min,sec=sec})
+                                        if timestamp > latest_timestamp then
+                                                latest_timestamp = timestamp
+                                        end
+                                        -- This trades coin value at trade time
+                                        if order_data["price"] ~= nil then
+                                                order_value = order_value + (order_data["price"] * order_data["filled_size"])
+                                        else
+                                                order_value = order_value + (1 / order_data["filled_size"] * order_data["executed_value"] * order_data["filled_size"])
                                         end
                                 end
                         end
@@ -160,8 +165,8 @@ function base64decode(data)
 end
 
 function queryCoinbaseProApi(endpoint)
-        -- try not to run into `too many requests`, pause before each
-        sleep(1)
+        -- if we run into too many requests we need to uncomment this
+        -- sleep(1)
         local path = string.format("/%s", endpoint)
         local timestamp = string.format("%d", MM.time())
         local apiSign = MM.hmac256(base64decode(apiSecret), timestamp .. "GET" .. path)
@@ -187,9 +192,18 @@ function productsExists(product_id, products)
         return false
 end
 
+-- Sleep function
 local clock = os.clock
 function sleep(n)  -- seconds
   local t0 = clock()
   while clock() - t0 <= n do end
+end
+
+-- Merge two tables: https://stackoverflow.com/a/29133654
+function merge(a, b)
+        if type(a) == 'table' and type(b) == 'table' then
+                for k,v in pairs(b) do if type(v)=='table' and type(a[k] or false)=='table' then merge(a[k],v) else a[k]=v end end
+        end
+        return a
 end
 -- SIGNATURE: MCwCFFrI1B5aenRMx/jAkWnJLKRDWkq3AhQusomTlSPK5Kv7yq7HFc9PCyIXjg==
