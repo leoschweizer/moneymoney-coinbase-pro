@@ -99,23 +99,35 @@ function RefreshAccount (account, since)
 
                 if crypto_shorthandle ~= nativeCurrency and productsExists(product_id, products) then
                         price = queryExchangeRate(product_id, products)
-                        -- Iterate through our orders
-                        for _, order_data in pairs(orders) do
-                                 -- We only care of buy orders for this coin, sold coins will not be in our balance anymore
-                                if order_data["side"] == "buy" and order_data["product_id"] == product_id then
-                                        bought_quantity = bought_quantity + order_data["filled_size"]
+                        -- Iterate through our orders in reverse, oldest transactions first
+                        for i = #orders, 1, -1 do        
+                                -- Bought coins
+                                if orders[i]["side"] == "buy" and orders[i]["product_id"] == product_id then
+                                        bought_quantity = bought_quantity + orders[i]["filled_size"]
                                         -- We have to generate a proper timestamp for MoneyMoney
-                                        year, month, day, hour, min, sec = order_data["done_at"]:match(pattern)
+                                        year, month, day, hour, min, sec = orders[i]["done_at"]:match(pattern)
                                         timestamp = os.time({day=day,month=month,year=year,hour=hour,min=min,sec=sec})
                                         if timestamp > latest_timestamp then
                                                 latest_timestamp = timestamp
                                         end
                                         -- This trades coin value at trade time
-                                        if order_data["price"] ~= nil then
-                                                order_value = order_value + (order_data["price"] * order_data["filled_size"])
+                                        if orders[i]["price"] ~= nil then
+                                                order_value = order_value + (orders[i]["price"] * orders[i]["filled_size"])
                                         else
-                                                order_value = order_value + (1 / order_data["filled_size"] * order_data["executed_value"] * order_data["filled_size"])
+                                                order_value = order_value + (1 / orders[i]["filled_size"] * orders[i]["executed_value"] * orders[i]["filled_size"])
                                         end
+                                end
+                                -- Sold coins
+                                if orders[i]["side"] == "sell" and orders[i]["product_id"] == product_id then
+                                        bought_quantity = bought_quantity - orders[i]["filled_size"]
+                                        -- We have to generate a proper timestamp for MoneyMoney
+                                        year, month, day, hour, min, sec = orders[i]["done_at"]:match(pattern)
+                                        timestamp = os.time({day=day,month=month,year=year,hour=hour,min=min,sec=sec})
+                                        if timestamp > latest_timestamp then
+                                                latest_timestamp = timestamp
+                                        end
+                                        -- Value of coins is average value of all coins at sell time
+                                        order_value = order_value - (order_value * orders[i]["filled_size"])
                                 end
                         end
                         -- Add unknown quantities of coins as current purchase price
@@ -123,7 +135,13 @@ function RefreshAccount (account, since)
                         order_value = order_value + (price * transferred_quantity)
 
                         -- Weighted average order price of all orders
-                        order_value = order_value / total_quantity
+                        if total_quantity > 0 then
+                                order_value = order_value / total_quantity
+                        else
+                                order_value = 0
+                        end
+
+                        -- Securities
                         s[#s+1] = {
                                 tradeTimestamp = timestamp,
                                 name = crypto_shorthandle,
