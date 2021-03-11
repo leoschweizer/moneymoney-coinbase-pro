@@ -200,7 +200,13 @@ function queryCoinbaseProApi(endpoint)
 end
 
 function queryExchangeRate(product_id, products)
-        return queryCoinbaseProApi("products/" .. product_id .. "/ticker")["price"]
+        ticker = queryCoinbaseProApi("products/" .. product_id .. "/ticker")
+        -- sometimes newly added coins have no prices in ticket yet, then we have to use something else
+        if ticker["price"] then
+                return ticker["price"]
+        else
+                return ticker["bid"]
+        end
 end
 
 function productsExists(product_id, products)
