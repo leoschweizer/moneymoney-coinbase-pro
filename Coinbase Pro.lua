@@ -97,8 +97,7 @@ function RefreshAccount (account, since)
                 local latest_timestamp = 0
                 local pattern = "(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+).%d+Z"
 
-                -- Ignore some FIAT currencies, focus on those being traded
-                if (crypto_shorthandle ~= "USDT" and crypto_shorthandle ~= "USDC" and crypto_shorthandle ~= nativeCurrency) and productsExists(product_id, products) then
+                if crypto_shorthandle ~= nativeCurrency and productsExists(product_id, products) then
                         price = queryExchangeRate(product_id, products)
                         -- Iterate through our orders in reverse, oldest transactions first
                         for i = #orders, 1, -1 do        
@@ -189,6 +188,7 @@ function queryCoinbaseProApi(endpoint)
         local path = string.format("/%s", endpoint)
         local timestamp = string.format("%d", MM.time())
         local apiSign = MM.hmac256(base64decode(apiSecret), timestamp .. "GET" .. path)
+
         local headers = {}
         headers["CB-ACCESS-KEY"] = apiKey
         headers["CB-ACCESS-TIMESTAMP"] = timestamp
