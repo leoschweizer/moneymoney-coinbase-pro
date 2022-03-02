@@ -66,6 +66,9 @@ function RefreshAccount (account, since)
         local products = queryCoinbaseProApi("products")
         for key, value in pairs(balances) do
                 local balanceCurrency = value["currency"]
+                if balanceCurrency == "XRP" then
+                        goto continue
+                end
                 local securityCurrency = nil
                 local price = nil
                 local amount = nil
@@ -92,6 +95,8 @@ function RefreshAccount (account, since)
                                 }
                         end
                 end
+
+                ::continue::
         end
         return {securities = s}
 end
