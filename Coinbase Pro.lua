@@ -81,7 +81,7 @@ function RefreshAccount (account, since)
                         }
                 else
                         local product_id = balanceCurrency .. '-' .. nativeCurrency
-                        if productsExists(product_id, products) then
+                        if productsExistsAndOnline(product_id, products) then
                                 s[#s+1] = {
                                         name = value["currency"],
                                         market = market,
@@ -134,9 +134,11 @@ function queryExchangeRate(product_id)
         return queryCoinbaseProApi("products/" .. product_id .. "/ticker")["price"]
 end
 
-function productsExists(product_id, products)
+function productsExistsAndOnline(product_id, products)
         for _, data in pairs(products) do
-                if data["id"] == product_id then return true end
+                local productExists = data["id"] == product_id
+                local productOnline = data["status"] == "online"
+                if (productExists == true) and (productOnline == true) then return true end
         end
         return false
 end
