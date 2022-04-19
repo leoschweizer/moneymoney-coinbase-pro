@@ -26,7 +26,7 @@
 -- SOFTWARE.
 
 WebBanking {
-        version = 1.1,
+        version = 1.2,
         url = "https://api.pro.coinbase.com",
         description = "Fetch balances via Coinbase Pro API and list them as securities",
         services = { "Coinbase Pro" }
