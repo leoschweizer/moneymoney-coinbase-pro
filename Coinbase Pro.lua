@@ -143,4 +143,4 @@ function productsExistsAndOnline(product_id, products)
         return false
 end
 
--- SIGNATURE: MC0CFEG8subcDGgx/zTD7J/1tZqFZzwHAhUAml+4P1Ykr5zy+8ZerTz6I4AKsqQ=
+-- SIGNATURE: MC0CFEkb6/OKcdI04Pb67sO6FYwie5KrAhUAkV9S2B4yq6pUp5fagDh5FfVaGQY=
